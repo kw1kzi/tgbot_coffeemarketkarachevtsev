@@ -1,63 +1,69 @@
-import telebot
-from telebot import types
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils import executor
 
-bot = telebot.TeleBot("6884576060:AAEHR_Oqb9fYA54UL5wakbyeZxY4tJASjPo")
+API_TOKEN = '6884576060:AAEHR_Oqb9fYA54UL5wakbyeZxY4tJASjPo'
 
-@bot.message_handler(commands=["start"])
-def start(message):
-    bot.send_message(message.chat.id,'Здравствуйте! Вас приветсвует Телеграм Бот Кофейня It Top, тут вы можете узнать асортимент и цены на кофе\n /help \n /cost \n /menu' )
+logging.basicConfig(level=logging.INFO)
 
-@bot.message_handler(commands=["help"])
-def help(message):
-    bot.send_message(message.chat.id, "Вот все команды: \n /help - Все команды которые есть🧐 \n /start - Начало Пути! \n /cost - Вычислитель стоимости🔢 \n /menu - Ассортимент Магазина☕️")
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
-@bot.message_handler(commands=["cost"])
-def first_button(message):
-        keyboard2 = types.InlineKeyboardMarkup()
-        first_mil = types.InlineKeyboardButton(text='0.25', callback_data='0,25_coffee')
-        keyboard2.add(first_mil)
-        second_mil = types.InlineKeyboardButton(text='0.35', callback_data='0.35_coffee')
-        keyboard2.add(second_mil)
-        third_mil = types.InlineKeyboardButton(text='0.45', callback_data='0.45_coffee')
-        keyboard2.add(third_mil)
-        bot.send_message(message.chat.id,'Для того чтобы вычислить цену кофе надо выбрать объем в мл!)', reply_markup=keyboard2)
-
-@bot.callback_query_handler(func=lambda callback: callback.data)
-def second_button(callback):
-    if callback.data == "0,25_coffee":
-        keyboard3 = types.InlineKeyboardMarkup()
-        first_coffee25 = types.InlineKeyboardButton(text='ЭКСПРЕССО ДВОЙНОЙ', callback_data='millitrs_1_25_coffee')
-        keyboard3.add(first_coffee25)
-        second_coffee25 = types.InlineKeyboardButton(text='ФЛЭТ УАЙТ', callback_data='millitrs_2_25_coffee')
-        keyboard3.add(second_coffee25)
-        third_coffee25 = types.InlineKeyboardButton(text='АМЕРИКАНО', callback_data='millitrs_3_25_coffee')
-        keyboard3.add(third_coffee25)
-        fourth_coffee25 = types.InlineKeyboardButton(text='КАПУЧИНО', callback_data='millitrs_4_25_coffee')
-        keyboard3.add(fourth_coffee25)
-        bot.send_message(callback.message.chat.id,'Выберите Напиток☕',reply_markup=keyboard3)
-    elif callback.data == "0.35_coffee":
-        keyboard4 = types.InlineKeyboardMarkup()
-        first_coffee35 = types.InlineKeyboardButton(text='АМЕРИКАНО', callback_data='millitrs_1_25_coffee')
-        keyboard4.add(first_coffee35)
-        second_coffee35 = types.InlineKeyboardButton(text='КАПУЧИНО', callback_data='millitrs_2_25_coffee')
-        keyboard4.add(second_coffee35)
-        third_coffee35 = types.InlineKeyboardButton(text='ЛАТТЕ', callback_data='millitrs_3_25_coffee')
-        keyboard4.add(third_coffee35)
-        fourth_coffee35 = types.InlineKeyboardButton(text='РАФ', callback_data='millitrs_4_25_coffee')
-        keyboard4.add(fourth_coffee35)
-        five_coffee35 = types.InlineKeyboardButton(text='ЛАТТЕ СОЛЕНАЯ КАРАМЕЛЬ', callback_data='millitrs_5_25_coffee')
-        keyboard4.add(five_coffee35)
-        six_coffee35 = types.InlineKeyboardButton(text='КАКАО', callback_data='millitrs_6_25_coffee')
-        keyboard4.add(six_coffee35)
-        seven_coffee35 = types.InlineKeyboardButton(text='ЧАЙ', callback_data='millitrs_7_25_coffee')
-        keyboard4.add(seven_coffee35)
-        bot.send_message(callback.message.chat.id, 'Выберите Напиток☕', reply_markup=keyboard4)
+# Клавиатура
+menu = ReplyKeyboardMarkup(resize_keyboard=True)
+menu.add(KeyboardButton("Список команд💬"))
+menu.add(KeyboardButton("Меню📖"))
+menu.add(KeyboardButton("Геолокация🌍"))
 
 
+# Список геолокаций кофеен
+locations = [
+    {"title": "Кофейня 1", "address": "Цветной бульвар", "apartment": "21"},
+    {"title": "Кофейня 2", "address": "Улица Маллая бронная", "apartment": "21"},
+]
+
+# Генерация клавиатуры с инлайн-кнопками для геолокаций
+locations_keyboard = InlineKeyboardMarkup()
+for location in locations:
+    locations_keyboard.add(
+        InlineKeyboardButton(text=location["title"], callback_data=f"location:{location['address']}:{location['apartment']}"))
 
 
+# Обработка команды /start
+@dp.message_handler(commands=['start'])
+async def process_start_command(message: types.Message):
+    await message.answer("Привет! Я бот кофейни чтобы воспользоваться мной, выбери команды снизуу.", reply_markup=menu)
 
-bot.polling(none_stop=True)
+
+# Обработка команды /help
+@dp.message_handler(lambda message: message.text == "Список команд💬", content_types=types.ContentTypes.TEXT)
+async def process_help_command(message: types.Message):
+    await message.answer("Список команд:\n/start - начать работу с ботом\n/help - список команд\n/menu - посмотреть меню", reply_markup=menu)
 
 
-#stop_propagation()
+# Обработка команды /menu
+@dp.message_handler(lambda message: message.text == "Меню📖", content_types=types.ContentTypes.TEXT)
+async def process_menu_command(message: types.Message):
+    await message.answer("Меню с ценами:\n1. Эспрессо - €2\n2. Латте - €2.5\n3. Капучино - €2\n4. РАФ Карамельный - €4.5\n5. Круасан - €1.25\n6. Донат в ассортименте - €1.5pcs", reply_markup=menu)
+
+
+# Обработка кнопки "Где нас найти?"
+@dp.message_handler(lambda message: message.text == "Геолокация🌍", content_types=types.ContentTypes.TEXT)
+async def process_location_button(message: types.Message):
+    await message.answer("Выбери кофейню, чтобы увидеть её местоположение:", reply_markup=locations_keyboard)
+
+
+# Обработка инлайн-кнопок с геолокациями
+@dp.callback_query_handler(lambda c: c.data.startswith('location'))
+async def process_location_button(callback_query: types.CallbackQuery):
+    _, address, apartment = callback_query.data.split(":")
+    location_text = f"Вы выбрали кофейню :\n{address} {apartment}"
+    await bot.send_message(callback_query.from_user.id, location_text)
+
+
+# Запуск бота
+if __name__ == '__main__':
+    from aiogram import executor
+
+    executor.start_polling(dp, skip_updates=True)
